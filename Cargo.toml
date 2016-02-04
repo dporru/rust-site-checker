@@ -1,0 +1,7 @@
+[package]
+name = "site_checker"
+version = "0.1.0"
+authors = ["Daan Porru <daan@wend.nl>"]
+
+[dependencies]
+hyper = "0.6.16"
