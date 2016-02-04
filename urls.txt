@@ -1,0 +1,3 @@
+http://httpstat.us/200
+http://httpstat.us/500
+http://httpstat.us/502

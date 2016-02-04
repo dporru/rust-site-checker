@@ -1,15 +1,16 @@
 extern crate hyper;
 
+use std::io::prelude::*;
 use hyper::Client;
+use std::fs::File;
 
 
 fn main() {
-    let sites = vec![
-        "http://httpstat.us/200",
-        "http://httpstat.us/500",
-        "http://httpstat.us/502",
-    ];
+    let mut f = File::open("urls.txt").unwrap();
+    let mut s = String::new();
+    f.read_to_string(&mut s).unwrap();
 
+    let sites: Vec<&str> = s.trim().split("\n").collect();
     let client = Client::new();
 
     for site in sites {
