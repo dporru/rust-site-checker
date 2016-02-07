@@ -17,11 +17,9 @@ fn get_urls(file_name: &str) -> Vec<String> {
     };
 
     let urls: Vec<&str> = s.trim().split("\n").collect();
-    let mut new_urls = vec![];
-    for url in urls {
-        new_urls.push(url.to_string());
-    }
-    new_urls
+    urls.iter().map(|url| {
+        url.to_string()
+    }).collect()
 }
 
 fn main() {
