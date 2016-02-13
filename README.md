@@ -1,4 +1,4 @@
-# Rust SiteChecker
+# Rust Site Checker
 
 This is a very simple site status checker written in Rust.
 
