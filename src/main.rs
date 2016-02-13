@@ -7,7 +7,35 @@ use hyper::Client;
 use std::fs::File;
 
 
-fn get_urls(file_name: &str) -> Vec<String> {
+enum SiteStatus {
+    None,
+    Status(hyper::status::StatusCode),
+    ConnectionError,
+}
+
+
+struct Site {
+    url: String,
+    status: SiteStatus,
+}
+
+impl Site {
+    fn new(url: &str) -> Site {
+        Site {
+            url: url.to_string(),
+            status: SiteStatus::None,
+        }
+    }
+
+    fn check(&mut self, client: &Client) {
+         self.status = match client.get(&self.url).send() {
+            Ok(res) => SiteStatus::Status(res.status),
+            Err(_) => SiteStatus::ConnectionError
+        }
+    }
+}
+
+fn get_sites(file_name: &str) -> Vec<Site> {
     let mut f = match File::open(file_name) {
         Ok(f) => f,
         Err(_) => panic!("Couldn't open file '{}'", file_name),
@@ -20,7 +48,7 @@ fn get_urls(file_name: &str) -> Vec<String> {
 
     let urls: Vec<&str> = s.trim().split("\n").collect();
     urls.iter().map(|url| {
-        url.to_string()
+        Site::new(url)
     }).collect()
 }
 
@@ -40,16 +68,21 @@ fn get_cli_args(file_name: &mut String) {
 fn main() {
     let mut file_name = "urls.txt".to_string();
     get_cli_args(&mut file_name);
-    let urls = get_urls(&file_name);
+    let mut sites = get_sites(&file_name);
     let client = Client::new();
 
-    for url in urls {
-         match client.get(&url).send() {
-            Ok(res) => match res.status {
-                hyper::Ok => (),
-                _ => println!("Error status for '{}': {}", url, res.status),
-            },
-            Err(_) => println!("Error connecting to '{}'", url)
+    for site in &mut sites {
+        site.check(&client);
+
+        // Output statuses
+        match site.status {
+            SiteStatus::None => panic!("'{}' was not checked!", site.url),
+            SiteStatus::ConnectionError =>
+                println!("Error conneting to '{}'", site.url),
+                SiteStatus::Status(status) => match status {
+                    hyper::Ok => (),
+                    _ => println!("Error status for '{}': {}", site.url, status),
+                },
         };
     }
 }
