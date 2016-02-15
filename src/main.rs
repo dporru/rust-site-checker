@@ -5,6 +5,8 @@ use argparse::{ArgumentParser, Store};
 use std::io::prelude::*;
 use hyper::Client;
 use std::fs::File;
+use std::sync::{Mutex, Arc};
+use std::thread;
 
 
 enum SiteStatus {
@@ -16,6 +18,7 @@ enum SiteStatus {
 
 struct Site {
     url: String,
+    checked: bool,
     status: SiteStatus,
 }
 
@@ -23,6 +26,7 @@ impl Site {
     fn new(url: &str) -> Site {
         Site {
             url: url.to_string(),
+            checked: false,
             status: SiteStatus::None,
         }
     }
@@ -35,7 +39,7 @@ impl Site {
     }
 }
 
-fn get_sites(file_name: &str) -> Vec<Site> {
+fn get_sites(file_name: &str) -> Vec<Mutex<Site>> {
     let mut f = match File::open(file_name) {
         Ok(f) => f,
         Err(_) => panic!("Couldn't open file '{}'", file_name),
@@ -48,7 +52,7 @@ fn get_sites(file_name: &str) -> Vec<Site> {
 
     let urls: Vec<&str> = s.trim().split("\n").collect();
     urls.iter().map(|url| {
-        Site::new(url)
+        Mutex::new(Site::new(url))
     }).collect()
 }
 
@@ -68,11 +72,26 @@ fn get_cli_args(file_name: &mut String) {
 fn main() {
     let mut file_name = "urls.txt".to_string();
     get_cli_args(&mut file_name);
-    let mut sites = get_sites(&file_name);
-    let client = Client::new();
+    let sites = get_sites(&file_name);
+    let sites = Arc::new(sites);
 
-    for site in &mut sites {
-        site.check(&client);
+    let handles: Vec<_> = (0..9).map(|_| {
+        let sites = sites.clone();
+        thread::spawn(move || {
+            let client = Client::new();
+            for site in &mut sites.iter() {
+                let mut site = site.lock().unwrap();
+                site.check(&client);
+            }
+        })
+    }).collect();
+
+    for h in handles {
+        h.join().unwrap();
+    }
+
+    for site in &sites[..] {
+        let site = site.lock().unwrap();
 
         // Output statuses
         match site.status {
