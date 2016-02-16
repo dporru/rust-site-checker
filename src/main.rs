@@ -80,8 +80,17 @@ fn main() {
         thread::spawn(move || {
             let client = Client::new();
             for site in &mut sites.iter() {
-                let mut site = site.lock().unwrap();
-                site.check(&client);
+                // Only one thread needs to check a site, so if it's locked
+                // it can be skipped.
+                let mut site = match site.try_lock() {
+                    Ok(site) => site,
+                    Err(_) => continue,
+                };
+
+                // Only check sites that aren't checked yet.
+                if !site.checked {
+                    site.check(&client);
+                }
             }
         })
     }).collect();
