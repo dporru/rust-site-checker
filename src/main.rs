@@ -56,26 +56,35 @@ fn get_sites(file_name: &str) -> Vec<Mutex<Site>> {
     }).collect()
 }
 
-fn get_cli_args(file_name: &mut String) {
+fn get_cli_args(file_name: &mut String, concurrency: &mut u32) {
     let file_name_expl = &format!(
         "File containing a list of urls. Default: {}", file_name);
+    let concurrency_expl = &format!(
+        "Number of simultanious requests, Default: {}", concurrency);
+    let mut concurrency_string = "2".to_string();
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("Check server response for a list of urls.");
         ap.refer(file_name)
             .add_option(
                 &["-f", "--file-name"], Store, file_name_expl);
+        ap.refer(&mut concurrency_string)
+            .add_option(
+                &["-c", "--concurrency"], Store,
+                concurrency_expl);
         ap.parse_args_or_exit();
     }
+    *concurrency = concurrency_string.parse().unwrap();
 }
 
 fn main() {
     let mut file_name = "urls.txt".to_string();
-    get_cli_args(&mut file_name);
-    let sites = get_sites(&file_name);
-    let sites = Arc::new(sites);
+    let mut concurrency = 2u32;
+    get_cli_args(&mut file_name, &mut concurrency);
 
-    let handles: Vec<_> = (0..9).map(|_| {
+    let sites = Arc::new(get_sites(&file_name));
+
+    let handles: Vec<_> = (0..concurrency).map(|_| {
         let sites = sites.clone();
         thread::spawn(move || {
             let client = Client::new();
