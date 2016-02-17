@@ -2,7 +2,7 @@
 name = "site_checker"
 version = "0.1.0"
 authors = ["Daan Porru <daan@porru.nl>"]
-description = "Very simple site status checker written in Rust"
+description = "Simple site status checker written in Rust"
 repository = "https://github.com/dporru/rust-site-checker"
 readme = "README.md"
 license = "MIT"
