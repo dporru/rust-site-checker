@@ -1,7 +1,7 @@
 extern crate hyper;
 extern crate argparse;
 
-use argparse::{ArgumentParser, Store};
+use argparse::{ArgumentParser, Store, StoreTrue};
 use std::io::prelude::*;
 use hyper::Client;
 use std::fs::File;
@@ -56,11 +56,13 @@ fn get_sites(file_name: &str) -> Vec<Mutex<Site>> {
     }).collect()
 }
 
-fn get_cli_args(file_name: &mut String, concurrency: &mut u32) {
+fn get_cli_args(file_name: &mut String, concurrency: &mut u32, verbose: &mut bool) {
     let file_name_expl = &format!(
         "File containing a list of urls. Default: {}", file_name);
     let concurrency_expl = &format!(
         "Number of simultanious requests, Default: {}", concurrency);
+    let verbose_exp = &format!(
+        "Verbose output. Default: {}", verbose);
     let mut concurrency_string = "2".to_string();
     {
         let mut ap = ArgumentParser::new();
@@ -72,6 +74,8 @@ fn get_cli_args(file_name: &mut String, concurrency: &mut u32) {
             .add_option(
                 &["-c", "--concurrency"], Store,
                 concurrency_expl);
+        ap.refer(verbose)
+            .add_option(&["-v", "--verbose"], StoreTrue, verbose_exp);
         ap.parse_args_or_exit();
     }
     *concurrency = concurrency_string.parse().unwrap();
@@ -80,7 +84,8 @@ fn get_cli_args(file_name: &mut String, concurrency: &mut u32) {
 fn main() {
     let mut file_name = "urls.txt".to_string();
     let mut concurrency = 2u32;
-    get_cli_args(&mut file_name, &mut concurrency);
+    let mut verbose = false;
+    get_cli_args(&mut file_name, &mut concurrency, &mut verbose);
 
     let sites = Arc::new(get_sites(&file_name));
 
@@ -117,7 +122,9 @@ fn main() {
             SiteStatus::ConnectionError =>
                 println!("Error conneting to '{}'", site.url),
                 SiteStatus::Status(status) => match status {
-                    hyper::Ok => (),
+                    hyper::Ok if !verbose => (),
+                    hyper::Ok if verbose => println!(
+                        "Success status for '{}': {}", site.url, status),
                     _ => println!("Error status for '{}': {}", site.url, status),
                 },
         };
