@@ -1,6 +1,6 @@
 [root]
 name = "site_checker"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "argparse 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)",
