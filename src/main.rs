@@ -32,7 +32,7 @@ impl Site {
     }
 
     fn check(&mut self, client: &Client) {
-         self.status = match client.get(&self.url).send() {
+         self.status = match client.head(&self.url).send() {
             Ok(res) => SiteStatus::Status(res.status),
             Err(_) => SiteStatus::ConnectionError
         }
